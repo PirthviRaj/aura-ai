@@ -22,7 +22,7 @@ async function tryOpenAI(prompt: string) {
     n: 1,
   });
 
-  const remote = result.data[0]?.url;
+  const remote = result.data?.[0]?.url;
   if (!remote) return null;
 
   const response = await fetch(remote, { cache: "no-store" });
