@@ -110,7 +110,8 @@ export function authenticateUser(email: string, password: string) {
     return { ok: false as const, error: "Incorrect password." };
   }
 
-  const { password_hash: _, ...user } = row;
+  const { password_hash, ...user } = row;
+  void password_hash;
   const token = createSession(user.id);
   return { ok: true as const, user, session: toSession(user), token };
 }
@@ -203,7 +204,9 @@ export function getSessionByToken(token: string | undefined | null) {
     db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
     return null;
   }
-  const { token: _, expires_at: __, ...user } = row;
+  const { token: _token, expires_at, ...user } = row;
+  void _token;
+  void expires_at;
   return { user, session: toSession(user) };
 }
 
