@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { SocialAuthButtons } from "@/components/auth/social-buttons";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { signIn } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -42,11 +41,23 @@ function LoginForm() {
         return;
       }
     } else {
-      const result = signIn(email, password);
-      if (!result.ok) {
-        toast.error(result.error);
-        setBusy(false);
-        return;
+      const response = await fetch("/api/db/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        // fallback to legacy localStorage auth
+        const result = signIn(email, password);
+        if (!result.ok) {
+          toast.error(payload.error || result.error);
+          setBusy(false);
+          return;
+        }
+      } else if (payload.session) {
+        const { setSession } = await import("@/lib/auth");
+        setSession(payload.session);
       }
     }
 
@@ -60,22 +71,10 @@ function LoginForm() {
         <CardContent className="p-6">
           <h1 className="text-2xl font-semibold text-foreground">Sign in to Aura</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            {isSupabaseConfigured()
-              ? "Authenticate with a connected provider or workspace credentials."
-              : "Continue with a provider, or use the credentials issued at enrollment."}
+            Use your workspace email and password to continue.
           </p>
 
-          <div className="mt-6">
-            <SocialAuthButtons next={next} />
-          </div>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-zinc-500">
-            <span className="h-px flex-1 bg-white/10" />
-            or email
-            <span className="h-px flex-1 bg-white/10" />
-          </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

@@ -2,6 +2,7 @@
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider, useTheme } from "@/components/theme/theme-provider";
+import { AuthProvider } from "@/components/auth/session-provider";
 import { Toaster } from "sonner";
 
 function ThemedToaster() {
@@ -26,11 +27,13 @@ function ThemedToaster() {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
-      <TooltipProvider delayDuration={200}>
-        {children}
-        <ThemedToaster />
-      </TooltipProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <TooltipProvider delayDuration={200}>
+          {children}
+          <ThemedToaster />
+        </TooltipProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

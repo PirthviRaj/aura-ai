@@ -62,6 +62,36 @@ function write(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function syncWorkspace(resource: string, payload: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
+  void fetch("/api/db/workspace", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resource, ...payload }),
+  }).catch(() => {
+    // DB sync is best-effort when session cookie exists
+  });
+}
+
+export async function hydrateWorkspaceFromDb() {
+  if (typeof window === "undefined") return;
+  try {
+    const response = await fetch("/api/db/workspace?resource=all", { cache: "no-store" });
+    if (!response.ok) return;
+    const payload = await response.json();
+    if (!payload?.ok) return;
+    if (payload.collections) write(COLLECTIONS_KEY, payload.collections);
+    if (payload.images) write(IMAGES_KEY, payload.images);
+    if (payload.voice) write(VOICE_KEY, payload.voice);
+    if (payload.draft !== undefined) {
+      if (payload.draft) write(DRAFT_KEY, payload.draft);
+      else localStorage.removeItem(DRAFT_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export const defaultVoiceSample =
   "We write like a senior strategist: precise, calm, and allergic to hype. Short sentences. No exclamation marks. Proof before promises.";
 
@@ -79,6 +109,7 @@ export function getBrandVoice(): BrandVoice {
 
 export function saveBrandVoice(voice: BrandVoice) {
   write(VOICE_KEY, voice);
+  syncWorkspace("voice", { voice });
 }
 
 export function trainBrandVoice(sample: string, speaker: SpeakerId = "aria"): BrandVoice {
@@ -196,6 +227,7 @@ export function getCollections(): Collection[] {
 
 export function saveCollections(collections: Collection[]) {
   write(COLLECTIONS_KEY, collections);
+  syncWorkspace("collections", { collections });
 }
 
 export function upsertCollection(collection: Collection) {
@@ -242,6 +274,7 @@ export function getImages(): LabImage[] {
 
 export function saveImages(images: LabImage[]) {
   write(IMAGES_KEY, images);
+  syncWorkspace("images", { images });
 }
 
 export function addImage(image: LabImage) {
@@ -263,8 +296,10 @@ export function getDraft(): LabDraft | null {
 
 export function saveDraft(draft: LabDraft) {
   write(DRAFT_KEY, draft);
+  syncWorkspace("draft", { draft });
 }
 
 export function clearDraft() {
   localStorage.removeItem(DRAFT_KEY);
+  syncWorkspace("draft", { draft: null });
 }

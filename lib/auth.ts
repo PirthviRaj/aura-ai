@@ -55,6 +55,9 @@ export function setSession(session: AuraSession) {
 
 export function signOut() {
   localStorage.removeItem(SESSION_KEY);
+  if (typeof window !== "undefined") {
+    void fetch("/api/db/auth/session", { method: "DELETE" }).catch(() => undefined);
+  }
 }
 
 export function signInWithSocial(input: {
@@ -78,21 +81,34 @@ export function signInWithSocial(input: {
     };
     writeUsers(users.map((user) => (user.email === email ? updated : user)));
     setSession(toSession(updated));
-    return { ok: true as const };
+  } else {
+    const [firstName, ...rest] = name.split(/\s+/);
+    const record: StoredUser = {
+      email,
+      password: `oauth-${input.provider}-${Date.now()}`,
+      firstName: firstName || "Aura",
+      lastName: rest.join(" ") || "User",
+      role: "Founder / Operator",
+      name,
+      provider: input.provider,
+    };
+    writeUsers([...users, record]);
+    setSession(toSession(record));
   }
 
-  const [firstName, ...rest] = name.split(/\s+/);
-  const record: StoredUser = {
-    email,
-    password: `oauth-${input.provider}-${Date.now()}`,
-    firstName: firstName || "Aura",
-    lastName: rest.join(" ") || "User",
-    role: "Founder / Operator",
-    name,
-    provider: input.provider,
-  };
-  writeUsers([...users, record]);
-  setSession(toSession(record));
+  if (typeof window !== "undefined") {
+    void fetch("/api/db/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "oauth",
+        provider: input.provider,
+        email,
+        name,
+      }),
+    }).catch(() => undefined);
+  }
+
   return { ok: true as const };
 }
 

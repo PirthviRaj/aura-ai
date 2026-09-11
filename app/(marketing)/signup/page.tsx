@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { SocialAuthButtons } from "@/components/auth/social-buttons";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { signUp } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -68,11 +67,22 @@ export default function SignupPage() {
         return;
       }
     } else {
-      const result = signUp(form);
-      if (!result.ok) {
-        toast.error(result.error);
-        setBusy(false);
-        return;
+      const response = await fetch("/api/db/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        const result = signUp(form);
+        if (!result.ok) {
+          toast.error(payload.error || result.error);
+          setBusy(false);
+          return;
+        }
+      } else if (payload.session) {
+        const { setSession } = await import("@/lib/auth");
+        setSession(payload.session);
       }
     }
 
@@ -86,22 +96,10 @@ export default function SignupPage() {
         <CardContent className="p-6 md:p-8">
           <h1 className="text-2xl font-semibold text-foreground">Create workspace access</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            {isSupabaseConfigured()
-              ? "Enroll with Google, GitHub, Microsoft, or work email via secured auth."
-              : "Complete enrollment with a provider or work email to unlock the platform modules."}
+            Create an account with your work email to unlock the platform modules.
           </p>
 
-          <div className="mt-6">
-            <SocialAuthButtons next="/dashboard" />
-          </div>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-zinc-500">
-            <span className="h-px flex-1 bg-white/10" />
-            or continue with email
-            <span className="h-px flex-1 bg-white/10" />
-          </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="First name" htmlFor="firstName">
                 <Input

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSession, setSession, type AuraSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
+import { hydrateWorkspaceFromDb } from "@/lib/workspace";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -16,8 +17,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     async function check() {
       const local = getSession();
       if (local) {
+        await hydrateWorkspaceFromDb();
         if (!cancelled) setAllowed(true);
         return;
+      }
+
+      try {
+        const response = await fetch("/api/db/auth/session", { cache: "no-store" });
+        const payload = await response.json();
+        if (payload?.ok && payload.session) {
+          setSession(payload.session);
+          await hydrateWorkspaceFromDb();
+          if (!cancelled) setAllowed(true);
+          return;
+        }
+      } catch {
+        // continue to supabase / redirect
       }
 
       const supabase = createClient();

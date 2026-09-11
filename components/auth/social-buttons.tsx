@@ -1,34 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { signInWithSocial } from "@/lib/auth";
 import type { SocialProvider } from "@/lib/oauth";
 import { toast } from "sonner";
 
 const providers: {
   id: SocialProvider;
+  nextAuthId: "google" | "github" | "azure-ad";
   label: string;
-  brand: string;
-  accent: string;
   icon: React.ReactNode;
 }[] = [
   {
     id: "google",
+    nextAuthId: "google",
     label: "Continue with Google",
-    brand: "Google",
-    accent: "#4285F4",
     icon: (
       <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
         <path
@@ -52,9 +39,8 @@ const providers: {
   },
   {
     id: "github",
+    nextAuthId: "github",
     label: "Continue with GitHub",
-    brand: "GitHub",
-    accent: "#24292f",
     icon: (
       <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden>
         <path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.9 9.6.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.4-3.4-1.4-.4-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.2-4.6-5.1 0-1.1.4-2 1-2.8-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1 .8-.2 1.6-.3 2.5-.3s1.7.1 2.5.3c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.7.8 1 1.7 1 2.8 0 4-2.3 4.8-4.6 5.1.4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5 4-1.3 6.9-5.1 6.9-9.6C22 6.6 17.5 2 12 2z" />
@@ -63,9 +49,8 @@ const providers: {
   },
   {
     id: "microsoft",
+    nextAuthId: "azure-ad",
     label: "Continue with Microsoft",
-    brand: "Microsoft",
-    accent: "#00a4ef",
     icon: (
       <span className="grid h-4 w-4 grid-cols-2 gap-0.5" aria-hidden>
         <span className="bg-[#f25022]" />
@@ -77,179 +62,64 @@ const providers: {
   },
 ];
 
-const supabaseProviderMap = {
-  google: "google",
-  github: "github",
-  microsoft: "azure",
-} as const;
-
 export function SocialAuthButtons({ next = "/dashboard" }: { next?: string }) {
-  const router = useRouter();
   const [busy, setBusy] = useState<SocialProvider | null>(null);
-  const [active, setActive] = useState<(typeof providers)[number] | null>(null);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [enabled, setEnabled] = useState<Record<SocialProvider, boolean>>({
+    google: false,
+    github: false,
+    microsoft: false,
+  });
 
-  async function onClick(provider: SocialProvider) {
-    const meta = providers.find((item) => item.id === provider);
-    if (!meta) return;
+  useEffect(() => {
+    void fetch("/api/auth/providers")
+      .then((r) => r.json())
+      .then((data: Record<string, unknown>) => {
+        setEnabled({
+          google: Boolean(data.google),
+          github: Boolean(data.github),
+          microsoft: Boolean(data["azure-ad"]),
+        });
+      })
+      .catch(() => undefined);
+  }, []);
 
-    setBusy(provider);
+  async function onClick(provider: (typeof providers)[number]) {
+    if (!enabled[provider.id]) {
+      toast.error(
+        "OAuth not set up yet. Add Google / GitHub / Microsoft client ID + secret in .env.local, then restart the server.",
+      );
+      return;
+    }
 
-    const supabase = createClient();
-    if (supabase && isSupabaseConfigured()) {
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: supabaseProviderMap[provider],
-        options: {
-          redirectTo,
-          queryParams:
-            provider === "google" ? { prompt: "select_account" } : undefined,
-        },
+    setBusy(provider.id);
+    try {
+      await signIn(provider.nextAuthId, {
+        callbackUrl: `/auth/oauth-complete?next=${encodeURIComponent(next)}`,
+        redirect: true,
       });
-      if (error) {
-        toast.error(error.message);
-        setBusy(null);
-        return;
-      }
-      return;
-    }
-
-    setBusy(null);
-    setEmail("");
-    setName("");
-    setActive(meta);
-  }
-
-  function complete(selectedEmail: string, selectedName: string) {
-    if (!active) return;
-    setBusy(active.id);
-    const result = signInWithSocial({
-      provider: active.id,
-      email: selectedEmail,
-      name: selectedName,
-    });
-    if (!result.ok) {
-      toast.error(result.error);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "OAuth failed");
       setBusy(null);
-      return;
     }
-    toast.success(`Signed in with ${active.brand}`);
-    setActive(null);
-    router.push(next);
-    router.refresh();
   }
 
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        {providers.map((provider) => (
-          <Button
-            key={provider.id}
-            type="button"
-            variant="secondary"
-            className="h-11 w-full justify-center gap-2.5 rounded-full"
-            disabled={busy !== null}
-            onClick={() => void onClick(provider.id)}
-          >
-            {provider.icon}
-            <span className="text-sm">
-              {busy === provider.id ? "Connecting…" : provider.label}
-            </span>
-          </Button>
-        ))}
-      </div>
-
-      <Dialog
-        open={active !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setActive(null);
-            setBusy(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-md border-white/10 bg-[#141418]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 text-white">
-              {active?.icon}
-              Sign in with {active?.brand}
-            </DialogTitle>
-            <DialogDescription>
-              Choose an account to continue to Aura AI — same flow as live
-              product logins.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            {[
-              { email: "you@gmail.com", name: "You", hint: "Personal" },
-              { email: "work@company.com", name: "Work Account", hint: "Work" },
-            ].map((account) => (
-              <button
-                key={account.email}
-                type="button"
-                disabled={busy !== null}
-                onClick={() => complete(account.email, account.name)}
-                className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-left transition hover:border-white/25 hover:bg-white/[0.06]"
-              >
-                <span
-                  className="grid h-9 w-9 place-items-center rounded-full text-sm font-semibold text-white"
-                  style={{ background: active?.accent }}
-                >
-                  {account.name.slice(0, 1)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-white">
-                    {account.name}
-                  </span>
-                  <span className="block truncate text-xs text-zinc-500">
-                    {account.email}
-                  </span>
-                </span>
-                <span className="text-[11px] text-zinc-500">{account.hint}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="my-1 flex items-center gap-3 text-xs text-zinc-500">
-            <span className="h-px flex-1 bg-white/10" />
-            or use another account
-            <span className="h-px flex-1 bg-white/10" />
-          </div>
-
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="social-name">Full name</Label>
-              <Input
-                id="social-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Aria Reynolds"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="social-email">Email</Label>
-              <Input
-                id="social-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-              />
-            </div>
-            <Button
-              className="w-full"
-              disabled={busy !== null || !email.includes("@")}
-              onClick={() =>
-                complete(email, name || email.split("@")[0] || "Aura User")
-              }
-            >
-              {busy ? "Connecting…" : `Continue with ${active?.brand ?? "provider"}`}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    <div className="flex flex-col gap-2">
+      {providers.map((provider) => (
+        <Button
+          key={provider.id}
+          type="button"
+          variant="secondary"
+          className="h-11 w-full justify-center gap-2.5 rounded-full"
+          disabled={busy !== null}
+          onClick={() => void onClick(provider)}
+        >
+          {provider.icon}
+          <span className="text-sm">
+            {busy === provider.id ? "Redirecting to provider…" : provider.label}
+          </span>
+        </Button>
+      ))}
+    </div>
   );
 }
