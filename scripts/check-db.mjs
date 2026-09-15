@@ -42,7 +42,14 @@ const user = process.env.DB_USER || "root";
 const password = process.env.DB_PASSWORD ?? "";
 const database = process.env.DB_NAME || "auraai";
 
-const connection = await mysql.createConnection({ host, port, user, password, database });
+const connection = await mysql.createConnection({
+  host,
+  port,
+  user,
+  password,
+  database,
+  ssl: { rejectUnauthorized: true },
+});
 const [rows] = await connection.query("SHOW TABLES");
 await connection.end();
 

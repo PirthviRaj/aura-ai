@@ -26,6 +26,7 @@ function poolConfig(): PoolOptions {
     user: required("DB_USER"),
     password: process.env.DB_PASSWORD ?? "",
     database: required("DB_NAME"),
+    ssl: { rejectUnauthorized: true },
     waitForConnections: true,
     connectionLimit: 10,
     namedPlaceholders: false,
