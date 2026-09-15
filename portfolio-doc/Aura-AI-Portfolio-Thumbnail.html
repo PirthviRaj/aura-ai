@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura AI — Portfolio Thumbnail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3efe8;
+      --bg-deep: #ebe4da;
+      --text: #16120f;
+      --muted: #6b645c;
+      --accent: #ff4d00;
+      --accent-2: #e64500;
+      --accent-soft: #ff7a33;
+      --mint: #059669;
+      --line: rgba(22, 18, 15, 0.1);
+      --glass: rgba(255, 255, 255, 0.72);
+      --screen: #faf8f5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      background:
+        radial-gradient(ellipse 50% 45% at 50% 42%, rgba(255, 77, 0, 0.14), transparent 62%),
+        radial-gradient(ellipse 35% 30% at 12% 18%, rgba(255, 138, 76, 0.12), transparent 55%),
+        radial-gradient(ellipse 30% 28% at 88% 78%, rgba(255, 77, 0, 0.08), transparent 50%),
+        linear-gradient(165deg, #faf7f2 0%, #f0ebe4 48%, #e8e0d4 100%);
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-radial-gradient(circle at 50% 48%, transparent 0 68px, rgba(255, 77, 0, 0.03) 68px 69px);
+      pointer-events: none;
+    }
+
+    .frame {
+      position: relative;
+      z-index: 1;
+      width: 1920px;
+      height: 1080px;
+      padding: 42px 56px 36px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+    }
+
+    /* —— Header —— */
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+    }
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #ff8a4c, #ff4d00 55%, #c2410c);
+      box-shadow: 0 10px 28px rgba(255, 77, 0, 0.35);
+      display: grid;
+      place-items: center;
+    }
+    .mark span {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: inset 0 0 0 3px rgba(255, 77, 0, 0.35);
+    }
+    .brand h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .headline {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      max-width: 820px;
+    }
+    .headline em {
+      font-style: normal;
+      background: linear-gradient(90deg, #ff7a33, #ff4d00);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .sub {
+      max-width: 720px;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* —— Stage —— */
+    .stage {
+      display: grid;
+      grid-template-columns: 1fr minmax(720px, 920px) 1fr;
+      align-items: center;
+      gap: 18px;
+      min-height: 0;
+    }
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 0 8px;
+    }
+    .side.left { align-items: flex-end; text-align: right; }
+    .side.right { align-items: flex-start; text-align: left; }
+
+    .side-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255, 77, 0, 0.12);
+      color: var(--accent-2);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .bars {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 210px;
+    }
+    .side.left .bars { align-items: flex-end; }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      opacity: 0.95;
+    }
+    .bar.b1 { width: 100%; background: linear-gradient(90deg, #ff8a4c, #ff4d00); }
+    .bar.b2 { width: 86%; background: linear-gradient(90deg, #fb923c, #ea580c); }
+    .bar.b3 { width: 72%; background: linear-gradient(90deg, #fdba74, #c2410c); }
+    .bar.b4 { width: 58%; background: linear-gradient(90deg, #fed7aa, #9a3412); }
+
+    .mod {
+      width: 260px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--glass);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 12px 32px rgba(22, 18, 15, 0.06);
+      backdrop-filter: blur(10px);
+    }
+    .mod strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+    .mod span {
+      font-size: 11.5px;
+      line-height: 1.35;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* —— Devices —— */
+    .devices {
+      position: relative;
+      height: 620px;
+      display: grid;
+      place-items: center;
+    }
+
+    /* iMac */
+    .imac {
+      position: relative;
+      width: 640px;
+      z-index: 1;
+    }
+    .imac-body {
+      background: linear-gradient(180deg, #e8e4df 0%, #d4cfc8 100%);
+      border-radius: 18px 18px 14px 14px;
+      padding: 14px 14px 18px;
+      box-shadow:
+        0 40px 80px rgba(22, 18, 15, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+    .imac-bezel {
+      background: #1a1714;
+      border-radius: 10px;
+      padding: 10px 10px 12px;
+      position: relative;
+    }
+    .imac-cam {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3a342e;
+      box-shadow: inset 0 0 0 1.5px #2a241f;
+      z-index: 2;
+    }
+    .imac-screen {
+      height: 360px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--screen);
+    }
+    .imac-chin {
+      height: 28px;
+      display: grid;
+      place-items: center;
+      margin-top: 2px;
+    }
+    .imac-logo {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      background: linear-gradient(145deg, #ff8a4c, #ff4d00);
+      opacity: 0.55;
+    }
+    .imac-stand {
+      width: 120px;
+      height: 54px;
+      margin: 0 auto;
+      background:
+        linear-gradient(180deg, #cfc9c1 0%, #b8b1a8 40%, #a39c93 100%);
+      clip-path: polygon(28% 0, 72% 0, 92% 100%, 8% 100%);
+      box-shadow: 0 8px 16px rgba(22, 18, 15, 0.12);
+    }
+    .imac-foot {
+      width: 180px;
+      height: 10px;
+      margin: -2px auto 0;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #b8b1a8, #9a938a);
+      box-shadow: 0 6px 14px rgba(22, 18, 15, 0.15);
+    }
+
+    /* Desktop UI */
+    .desk {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 148px 1fr;
+      background: #f7f4ef;
+      font-size: 10px;
+    }
+    .nav {
+      background: #fff;
+      border-right: 1px solid var(--line);
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+    .nav-brand i {
+      width: 16px;
+      height: 16px;
+      border-radius: 5px;
+      background: linear-gradient(145deg, #ff8a4c, #ff4d00);
+      display: block;
+    }
+    .nav a {
+      display: block;
+      padding: 7px 8px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .nav a.active {
+      background: rgba(255, 77, 0, 0.1);
+      color: var(--accent-2);
+    }
+    .main {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+    .main-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .main-top h3 {
+      font-size: 14px;
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .pill {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(5, 150, 105, 0.12);
+      color: var(--mint);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .stat b {
+      display: block;
+      font-size: 16px;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--accent);
+      line-height: 1.1;
+    }
+    .stat span { color: var(--muted); font-weight: 600; font-size: 9px; }
+    .panel {
+      flex: 1;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-height: 0;
+    }
+    .panel h4 {
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      background: #faf8f5;
+      font-weight: 600;
+    }
+    .row em {
+      font-style: normal;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent);
+      background: rgba(255, 77, 0, 0.1);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+    .row em.q { color: var(--muted); background: rgba(22, 18, 15, 0.06); }
+    .chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 42px;
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+    .chart i {
+      flex: 1;
+      border-radius: 4px 4px 0 0;
+      background: linear-gradient(180deg, #ff8a4c, #ff4d00);
+      opacity: 0.85;
+    }
+
+    /* iPhone */
+    .phone {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      width: 196px;
+      z-index: 3;
+      filter: drop-shadow(0 28px 40px rgba(22, 18, 15, 0.28));
+    }
+    .phone-frame {
+      background: #1c1916;
+      border-radius: 36px;
+      padding: 10px;
+      border: 2px solid #3a342e;
+    }
+    .phone-glass {
+      background: var(--screen);
+      border-radius: 28px;
+      overflow: hidden;
+      height: 390px;
+      position: relative;
+    }
+    .notch {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 18px;
+      background: #1c1916;
+      border-radius: 999px;
+      z-index: 2;
+    }
+    .phone-ui {
+      padding: 36px 12px 14px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background:
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255, 77, 0, 0.12), transparent 60%),
+        #faf8f5;
+    }
+    .phone-ui .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .phone-ui .value {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-top: -4px;
+    }
+    .phone-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .phone-stat {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .phone-stat span {
+      display: block;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .phone-stat strong {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 16px;
+      color: var(--accent);
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .chips span {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: rgba(255, 77, 0, 0.1);
+      color: var(--accent-2);
+    }
+    .asset {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .asset .ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #ff8a4c, #ff4d00);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .asset .info { flex: 1; min-width: 0; }
+    .asset .info strong {
+      display: block;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .asset .info span {
+      font-size: 8px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .asset .go {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .cta {
+      margin-top: auto;
+      background: linear-gradient(135deg, #ff7a33, #ff4d00);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(255, 77, 0, 0.35);
+    }
+
+    /* —— Footer —— */
+    .footer {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .col h5 {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .col p {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+    .pills span {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <header class="brand">
+      <div class="brand-row">
+        <div class="mark" aria-hidden="true"><span></span></div>
+        <h1>Aura AI</h1>
+      </div>
+      <div class="eyebrow">SEO Content Platform</div>
+      <p class="headline">Rank-ready content ops on <em>autopilot</em></p>
+      <p class="sub">
+        A commissioned workspace that unifies research, drafting, SEO scoring, brand voice,
+        and campaign visuals — one login, one pipeline, desktop + mobile.
+      </p>
+    </header>
+
+    <div class="stage">
+      <aside class="side left">
+        <div class="side-label">Desktop: Writer &amp; Pipeline</div>
+        <div class="stat-chip">10 LIVE MODULES</div>
+        <div class="bars" aria-hidden="true">
+          <div class="bar b1"></div>
+          <div class="bar b2"></div>
+          <div class="bar b3"></div>
+          <div class="bar b4"></div>
+        </div>
+        <div class="mod">
+          <strong>AI Writer</strong>
+          <span>Brief → structured draft with SEO sections and templates.</span>
+        </div>
+        <div class="mod">
+          <strong>Research Chat</strong>
+          <span>Intent maps, outlines, and citation-ready answers.</span>
+        </div>
+        <div class="mod">
+          <strong>Collections</strong>
+          <span>Organize drafts by cluster — Drafting to Publishing.</span>
+        </div>
+      </aside>
+
+      <div class="devices">
+        <div class="imac">
+          <div class="imac-body">
+            <div class="imac-bezel">
+              <span class="imac-cam"></span>
+              <div class="imac-screen">
+                <div class="desk">
+                  <nav class="nav">
+                    <div class="nav-brand"><i></i> Aura</div>
+                    <a class="active" href="#">Dashboard</a>
+                    <a href="#">Writer</a>
+                    <a href="#">Templates</a>
+                    <a href="#">Chat</a>
+                    <a href="#">Brand Voice</a>
+                    <a href="#">Images</a>
+                    <a href="#">Workflows</a>
+                    <a href="#">Collections</a>
+                  </nav>
+                  <div class="main">
+                    <div class="main-top">
+                      <h3>Welcome back, Operator</h3>
+                      <span class="pill">Live</span>
+                    </div>
+                    <div class="stats">
+                      <div class="stat"><b>87</b><span>SEO score</span></div>
+                      <div class="stat"><b>12</b><span>Collections</span></div>
+                      <div class="stat"><b>06</b><span>In review</span></div>
+                    </div>
+                    <div class="panel">
+                      <h4>Today · Content pipeline</h4>
+                      <div class="row"><span>Blog draft — CRM onboarding guide</span><em>Ready</em></div>
+                      <div class="row"><span>Chat research — search intent map</span><em>Ready</em></div>
+                      <div class="row"><span>Brand voice — TTS polish pass</span><em class="q">Queued</em></div>
+                      <div class="row"><span>Image set — launch hero visuals</span><em class="q">Queued</em></div>
+                      <div class="chart" aria-hidden="true">
+                        <i style="height:48%"></i>
+                        <i style="height:72%"></i>
+                        <i style="height:40%"></i>
+                        <i style="height:88%"></i>
+                        <i style="height:62%"></i>
+                        <i style="height:54%"></i>
+                        <i style="height:76%"></i>
+                        <i style="height:44%"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="imac-chin"><div class="imac-logo"></div></div>
+            </div>
+          </div>
+          <div class="imac-stand"></div>
+          <div class="imac-foot"></div>
+        </div>
+
+        <div class="phone">
+          <div class="phone-frame">
+            <div class="phone-glass">
+              <span class="notch"></span>
+              <div class="phone-ui">
+                <div class="label">Workspace</div>
+                <div class="value">Aura AI</div>
+                <div class="phone-stats">
+                  <div class="phone-stat"><span>SEO score</span><strong>87</strong></div>
+                  <div class="phone-stat"><span>In review</span><strong>06</strong></div>
+                </div>
+                <div class="chips">
+                  <span>Writer</span><span>Chat</span><span>Voice</span><span>Images</span>
+                </div>
+                <div class="asset">
+                  <div class="ico">✎</div>
+                  <div class="info"><strong>Generate draft</strong><span>SEO Blog Post</span></div>
+                  <div class="go">Go</div>
+                </div>
+                <div class="asset">
+                  <div class="ico">◎</div>
+                  <div class="info"><strong>Chat research</strong><span>Intent map</span></div>
+                  <div class="go">Go</div>
+                </div>
+                <div class="asset">
+                  <div class="ico">▤</div>
+                  <div class="info"><strong>Collections</strong><span>12 assets</span></div>
+                  <div class="go">12</div>
+                </div>
+                <div class="cta">Open pipeline →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side right">
+        <div class="side-label">Mobile: Score &amp; Ship</div>
+        <div class="stat-chip">SEO SCORE 87</div>
+        <div class="bars" aria-hidden="true">
+          <div class="bar b1"></div>
+          <div class="bar b2"></div>
+          <div class="bar b3"></div>
+          <div class="bar b4"></div>
+        </div>
+        <div class="mod">
+          <strong>Brand Voice</strong>
+          <span>Train tone, cadence, and TTS speaker for on-brand drafts.</span>
+        </div>
+        <div class="mod">
+          <strong>Image Studio</strong>
+          <span>Campaign visuals from prompts — studio + AI generate.</span>
+        </div>
+        <div class="mod">
+          <strong>Workflows</strong>
+          <span>Brief → draft → score → review → publish-ready.</span>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="footer">
+      <div class="cols">
+        <div class="col">
+          <h5>Why it exists</h5>
+          <p>Replace docs + chat tabs + image apps with one authenticated SEO content system of record.</p>
+        </div>
+        <div class="col">
+          <h5>How it works</h5>
+          <p>Writer, Chat, and Images draft and research; SEO scoring + workflows gate quality before publish.</p>
+        </div>
+        <div class="col">
+          <h5>What you get</h5>
+          <p>Rank-ready drafts, reusable collections, brand voice, and campaign visuals in one workspace.</p>
+        </div>
+      </div>
+      <div class="pills">
+        <span>Writer</span>
+        <span>Templates</span>
+        <span>Editor</span>
+        <span>Research Chat</span>
+        <span>Brand Voice</span>
+        <span>Image Studio</span>
+        <span>Workflows</span>
+        <span>Collections</span>
+        <span>SEO Scoring</span>
+        <span>Auth Workspace</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

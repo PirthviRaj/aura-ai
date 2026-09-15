@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
       const provider = mapProvider(account.provider);
       if (!provider) return false;
 
-      const result = upsertOAuthUser({
+      const result = await upsertOAuthUser({
         provider,
         email: user.email,
         name: user.name || user.email.split("@")[0] || "Aura User",

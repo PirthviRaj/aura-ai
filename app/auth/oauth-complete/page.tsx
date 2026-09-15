@@ -24,7 +24,7 @@ export default async function OAuthCompletePage({
       ? providerRaw
       : "google";
 
-  const result = upsertOAuthUser({
+  const result = await upsertOAuthUser({
     provider,
     email: session.user.email,
     name: session.user.name || session.user.email.split("@")[0] || "Aura User",

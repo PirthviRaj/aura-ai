@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     const token = getSessionToken();
-    const current = getSessionByToken(token);
+    const current = await getSessionByToken(token);
     if (!current) {
       return NextResponse.json({ ok: true, session: null });
     }
@@ -27,7 +27,7 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    destroySession(getSessionToken());
+    await destroySession(getSessionToken());
     clearSessionCookie();
     return NextResponse.json({ ok: true });
   } catch (error) {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     if (body?.action === "oauth") {
-      const result = upsertOAuthUser({
+      const result = await upsertOAuthUser({
         provider: body.provider,
         email: String(body.email ?? ""),
         name: String(body.name ?? ""),

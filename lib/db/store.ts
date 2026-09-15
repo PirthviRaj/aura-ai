@@ -1,5 +1,6 @@
 import crypto from "crypto";
-import { getDb } from "@/lib/db/client";
+import type { PoolConnection, RowDataPacket } from "mysql2/promise";
+import { execute, queryOne, queryRows, withTransaction } from "@/lib/db/client";
 import { uid } from "@/lib/id";
 import type { AuraSession, SignUpInput } from "@/lib/auth";
 import type {
@@ -41,6 +42,10 @@ export type DbUser = {
   provider: AuraSession["provider"];
 };
 
+type UserRow = DbUser & RowDataPacket;
+type AuthUserRow = DbUser & { password_hash: string } & RowDataPacket;
+type SessionJoinRow = DbUser & { token: string; expires_at: string } & RowDataPacket;
+
 function toSession(user: DbUser): AuraSession {
   return {
     email: user.email,
@@ -54,10 +59,12 @@ function toSession(user: DbUser): AuraSession {
   };
 }
 
-export function createUser(input: SignUpInput) {
-  const db = getDb();
+const USER_SELECT =
+  `id, email, full_name, first_name, last_name, role, company, website, team_size, plan, provider`;
+
+export async function createUser(input: SignUpInput) {
   const email = input.email.trim().toLowerCase();
-  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  const existing = await queryOne<RowDataPacket>("SELECT id FROM users WHERE email = ?", [email]);
   if (existing) return { ok: false as const, error: "This email already has an account. Log in instead." };
 
   const firstName = input.firstName.trim();
@@ -72,155 +79,167 @@ export function createUser(input: SignUpInput) {
 
   const id = uid();
   const fullName = `${firstName} ${lastName}`.trim();
-  db.prepare(
+  await execute(
     `INSERT INTO users (id, email, password_hash, first_name, last_name, full_name, role, provider)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    email,
-    hashPassword(input.password),
-    firstName,
-    lastName,
-    fullName,
-    input.role,
-    input.provider ?? "email",
+    [
+      id,
+      email,
+      hashPassword(input.password),
+      firstName,
+      lastName,
+      fullName,
+      input.role,
+      input.provider ?? "email",
+    ],
   );
 
-  seedWorkspace(id);
-  const user = getUserById(id)!;
-  const token = createSession(id);
+  await seedWorkspace(id);
+  const user = (await getUserById(id))!;
+  const token = await createSession(id);
   return { ok: true as const, user, session: toSession(user), token };
 }
 
-export function authenticateUser(email: string, password: string) {
-  const db = getDb();
+export async function authenticateUser(email: string, password: string) {
   const normalized = email.trim().toLowerCase();
   if (!normalized || !password) {
     return { ok: false as const, error: "Email and password are required." };
   }
-  const row = db
-    .prepare(
-      `SELECT id, email, password_hash, full_name, first_name, last_name, role, company, website, team_size, plan, provider
-       FROM users WHERE email = ?`,
-    )
-    .get(normalized) as (DbUser & { password_hash: string }) | undefined;
+
+  const row = await queryOne<AuthUserRow>(
+    `SELECT ${USER_SELECT}, password_hash FROM users WHERE email = ?`,
+    [normalized],
+  );
 
   if (!row) return { ok: false as const, error: "No account found for this email. Create one first." };
   if (!verifyPassword(password, row.password_hash)) {
     return { ok: false as const, error: "Incorrect password." };
   }
 
-  const { password_hash, ...user } = row;
-  void password_hash;
-  const token = createSession(user.id);
+  const user: DbUser = {
+    id: row.id,
+    email: row.email,
+    full_name: row.full_name,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    role: row.role,
+    company: row.company,
+    website: row.website,
+    team_size: row.team_size,
+    plan: row.plan,
+    provider: row.provider,
+  };
+  const token = await createSession(user.id);
   return { ok: true as const, user, session: toSession(user), token };
 }
 
-export function upsertOAuthUser(input: {
+export async function upsertOAuthUser(input: {
   provider: Exclude<NonNullable<AuraSession["provider"]>, "email">;
   email: string;
   name: string;
 }) {
-  const db = getDb();
   const email = input.email.trim().toLowerCase();
   const name = input.name.trim() || email.split("@")[0] || "Aura User";
   if (!email.includes("@")) {
     return { ok: false as const, error: "A valid email is required from the provider." };
   }
 
-  let user = db
-    .prepare(
-      `SELECT id, email, full_name, first_name, last_name, role, company, website, team_size, plan, provider
-       FROM users WHERE email = ?`,
-    )
-    .get(email) as DbUser | undefined;
+  let user = await queryOne<UserRow>(`SELECT ${USER_SELECT} FROM users WHERE email = ?`, [email]);
 
   if (user) {
-    db.prepare(
-      `UPDATE users SET full_name = ?, provider = ?, updated_at = datetime('now') WHERE id = ?`,
-    ).run(name, input.provider, user.id);
-    user = getUserById(user.id)!;
+    await execute(`UPDATE users SET full_name = ?, provider = ? WHERE id = ?`, [
+      name,
+      input.provider,
+      user.id,
+    ]);
+    user = (await getUserById(user.id))!;
   } else {
     const [firstName, ...rest] = name.split(/\s+/);
     const id = uid();
-    db.prepare(
+    await execute(
       `INSERT INTO users (id, email, password_hash, first_name, last_name, full_name, role, provider)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      id,
-      email,
-      hashPassword(`oauth-${input.provider}-${Date.now()}`),
-      firstName || "Aura",
-      rest.join(" ") || "User",
-      name,
-      "Founder / Operator",
-      input.provider,
+      [
+        id,
+        email,
+        hashPassword(`oauth-${input.provider}-${Date.now()}`),
+        firstName || "Aura",
+        rest.join(" ") || "User",
+        name,
+        "Founder / Operator",
+        input.provider,
+      ],
     );
-    seedWorkspace(id);
-    user = getUserById(id)!;
+    await seedWorkspace(id);
+    user = (await getUserById(id))!;
   }
 
-  const token = createSession(user.id);
+  const token = await createSession(user.id);
   return { ok: true as const, user, session: toSession(user), token };
 }
 
-export function getUserById(id: string) {
-  return getDb()
-    .prepare(
-      `SELECT id, email, full_name, first_name, last_name, role, company, website, team_size, plan, provider
-       FROM users WHERE id = ?`,
-    )
-    .get(id) as DbUser | undefined;
+export async function getUserById(id: string) {
+  return queryOne<UserRow>(`SELECT ${USER_SELECT} FROM users WHERE id = ?`, [id]);
 }
 
-export function createSession(userId: string) {
-  const db = getDb();
+export async function createSession(userId: string) {
   const token = crypto.randomBytes(32).toString("hex");
   const id = uid();
-  const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  db.prepare(
-    `INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)`,
-  ).run(id, userId, token, expires);
+  const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  await execute(`INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)`, [
+    id,
+    userId,
+    token,
+    expires,
+  ]);
   return token;
 }
 
-export function getSessionByToken(token: string | undefined | null) {
+export async function getSessionByToken(token: string | undefined | null) {
   if (!token) return null;
-  const db = getDb();
-  const row = db
-    .prepare(
-      `SELECT s.token, s.expires_at, u.id, u.email, u.full_name, u.first_name, u.last_name,
-              u.role, u.company, u.website, u.team_size, u.plan, u.provider
-       FROM sessions s
-       JOIN users u ON u.id = s.user_id
-       WHERE s.token = ?`,
-    )
-    .get(token) as
-    | (DbUser & { token: string; expires_at: string })
-    | undefined;
+
+  const row = await queryOne<SessionJoinRow>(
+    `SELECT s.token, s.expires_at, u.id, u.email, u.full_name, u.first_name, u.last_name,
+            u.role, u.company, u.website, u.team_size, u.plan, u.provider
+     FROM sessions s
+     JOIN users u ON u.id = s.user_id
+     WHERE s.token = ?`,
+    [token],
+  );
 
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) {
-    db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
+    await execute("DELETE FROM sessions WHERE token = ?", [token]);
     return null;
   }
-  const { token: _token, expires_at, ...user } = row;
-  void _token;
-  void expires_at;
+
+  const user: DbUser = {
+    id: row.id,
+    email: row.email,
+    full_name: row.full_name,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    role: row.role,
+    company: row.company,
+    website: row.website,
+    team_size: row.team_size,
+    plan: row.plan,
+    provider: row.provider,
+  };
   return { user, session: toSession(user) };
 }
 
-export function destroySession(token: string | undefined | null) {
+export async function destroySession(token: string | undefined | null) {
   if (!token) return;
-  getDb().prepare("DELETE FROM sessions WHERE token = ?").run(token);
+  await execute("DELETE FROM sessions WHERE token = ?", [token]);
 }
 
-function seedWorkspace(userId: string) {
-  const db = getDb();
-  const count = db.prepare("SELECT COUNT(*) AS c FROM collections WHERE user_id = ?").get(userId) as {
-    c: number;
-  };
-  if (count.c > 0) return;
+async function seedWorkspace(userId: string) {
+  const countRow = await queryOne<RowDataPacket & { c: number }>(
+    "SELECT COUNT(*) AS c FROM collections WHERE user_id = ?",
+    [userId],
+  );
+  if ((countRow?.c ?? 0) > 0) return;
 
   const seeds: Array<{ id: string; name: string; status: Collection["status"] }> = [
     { id: "generated", name: "Generated drafts", status: "Drafting" },
@@ -230,110 +249,122 @@ function seedWorkspace(userId: string) {
     { id: "q3-launches", name: "Q3 Product Launches", status: "Review" },
   ];
 
-  const insertCollection = db.prepare(
-    `INSERT INTO collections (id, user_id, name, status) VALUES (?, ?, ?, ?)`,
-  );
-  const insertDoc = db.prepare(
-    `INSERT INTO collection_documents (id, collection_id, title, status, words, template, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
-  );
-
-  const tx = db.transaction(() => {
+  await withTransaction(async (conn) => {
     for (const seed of seeds) {
       const collectionId = `${userId.slice(0, 8)}-${seed.id}`;
-      insertCollection.run(collectionId, userId, seed.name, seed.status);
+      await conn.execute(
+        `INSERT INTO collections (id, user_id, name, status) VALUES (?, ?, ?, ?)`,
+        [collectionId, userId, seed.name, seed.status],
+      );
       if (seed.id === "generated") continue;
-      insertDoc.run(uid(), collectionId, `${seed.name} starter doc`, "Draft", 400, "SEO Blog Post");
+      await conn.execute(
+        `INSERT INTO collection_documents (id, collection_id, title, status, words, template)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [uid(), collectionId, `${seed.name} starter doc`, "Draft", 400, "SEO Blog Post"],
+      );
     }
-    db.prepare(
+    await conn.execute(
       `INSERT INTO brand_voices (user_id, sample, trained, traits_json, cadence, speaker)
        VALUES (?, ?, 0, '[]', '', 'aria')`,
-    ).run(userId, DEFAULT_VOICE_SAMPLE);
+      [userId, DEFAULT_VOICE_SAMPLE],
+    );
   });
-  tx();
 }
 
-export function listCollections(userId: string): Collection[] {
-  const db = getDb();
-  const collections = db
-    .prepare(
-      `SELECT id, name, status FROM collections WHERE user_id = ? ORDER BY updated_at DESC`,
-    )
-    .all(userId) as Array<{ id: string; name: string; status: Collection["status"] }>;
+export async function listCollections(userId: string): Promise<Collection[]> {
+  const collections = await queryRows<
+    RowDataPacket & { id: string; name: string; status: Collection["status"] }
+  >(`SELECT id, name, status FROM collections WHERE user_id = ? ORDER BY updated_at DESC`, [userId]);
 
-  const docsStmt = db.prepare(
-    `SELECT id, title, status, words, template, updated_at AS updatedAt
-     FROM collection_documents WHERE collection_id = ? ORDER BY updated_at DESC`,
-  );
-
-  return collections.map((collection) => ({
-    ...collection,
-    documents: docsStmt.all(collection.id) as CollectionDoc[],
-  }));
+  const result: Collection[] = [];
+  for (const collection of collections) {
+    const documents = await queryRows<
+      RowDataPacket & {
+        id: string;
+        title: string;
+        status: CollectionDoc["status"];
+        words: number;
+        template: string | null;
+        updatedAt: string;
+      }
+    >(
+      `SELECT id, title, status, words, template, updated_at AS updatedAt
+       FROM collection_documents WHERE collection_id = ? ORDER BY updated_at DESC`,
+      [collection.id],
+    );
+    result.push({
+      ...collection,
+      documents: documents.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        status: doc.status,
+        words: doc.words,
+        template: doc.template ?? undefined,
+        updatedAt: doc.updatedAt,
+      })),
+    });
+  }
+  return result;
 }
 
-export function saveCollectionsForUser(userId: string, collections: Collection[]) {
-  const db = getDb();
-  const tx = db.transaction(() => {
-    const existing = db
-      .prepare("SELECT id FROM collections WHERE user_id = ?")
-      .all(userId) as Array<{ id: string }>;
+export async function saveCollectionsForUser(userId: string, collections: Collection[]) {
+  await withTransaction(async (conn) => {
+    const [existingRows] = await conn.query<RowDataPacket[]>(
+      "SELECT id FROM collections WHERE user_id = ?",
+      [userId],
+    );
     const keep = new Set(collections.map((c) => c.id));
-    for (const row of existing) {
-      if (!keep.has(row.id)) {
-        db.prepare("DELETE FROM collections WHERE id = ? AND user_id = ?").run(row.id, userId);
+    for (const row of existingRows) {
+      if (!keep.has(String(row.id))) {
+        await conn.execute("DELETE FROM collections WHERE id = ? AND user_id = ?", [row.id, userId]);
       }
     }
 
-    const upsertCollection = db.prepare(
-      `INSERT INTO collections (id, user_id, name, status, updated_at)
-       VALUES (?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(id) DO UPDATE SET
-         name = excluded.name,
-         status = excluded.status,
-         updated_at = datetime('now')`,
-    );
-    const deleteDocs = db.prepare("DELETE FROM collection_documents WHERE collection_id = ?");
-    const insertDoc = db.prepare(
-      `INSERT INTO collection_documents (id, collection_id, title, status, words, template, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    );
-
     for (const collection of collections) {
-      upsertCollection.run(collection.id, userId, collection.name, collection.status);
-      deleteDocs.run(collection.id);
+      await conn.execute(
+        `INSERT INTO collections (id, user_id, name, status)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           name = VALUES(name),
+           status = VALUES(status),
+           user_id = VALUES(user_id)`,
+        [collection.id, userId, collection.name, collection.status],
+      );
+      await conn.execute("DELETE FROM collection_documents WHERE collection_id = ?", [collection.id]);
       for (const doc of collection.documents) {
-        insertDoc.run(
-          doc.id,
-          collection.id,
-          doc.title,
-          doc.status,
-          doc.words,
-          doc.template ?? null,
-          doc.updatedAt,
+        await conn.execute(
+          `INSERT INTO collection_documents (id, collection_id, title, status, words, template, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            doc.id,
+            collection.id,
+            doc.title,
+            doc.status,
+            doc.words,
+            doc.template ?? null,
+            doc.updatedAt,
+          ],
         );
       }
     }
   });
-  tx();
 }
 
-export function getBrandVoiceForUser(userId: string): BrandVoice {
-  const row = getDb()
-    .prepare(
-      `SELECT sample, trained, traits_json, cadence, speaker, trained_at
-       FROM brand_voices WHERE user_id = ?`,
-    )
-    .get(userId) as
-    | {
-        sample: string;
-        trained: number;
-        traits_json: string;
-        cadence: string;
-        speaker: string;
-        trained_at: string | null;
-      }
-    | undefined;
+export async function getBrandVoiceForUser(userId: string): Promise<BrandVoice> {
+  const row = await queryOne<
+    RowDataPacket & {
+      sample: string;
+      trained: number;
+      traits_json: string;
+      cadence: string;
+      speaker: string;
+      trained_at: string | null;
+    }
+  >(
+    `SELECT sample, trained, traits_json, cadence, speaker, trained_at
+     FROM brand_voices WHERE user_id = ?`,
+    [userId],
+  );
 
   if (!row) {
     return {
@@ -355,21 +386,18 @@ export function getBrandVoiceForUser(userId: string): BrandVoice {
   };
 }
 
-export function saveBrandVoiceForUser(userId: string, voice: BrandVoice) {
-  getDb()
-    .prepare(
-      `INSERT INTO brand_voices (user_id, sample, trained, traits_json, cadence, speaker, trained_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(user_id) DO UPDATE SET
-         sample = excluded.sample,
-         trained = excluded.trained,
-         traits_json = excluded.traits_json,
-         cadence = excluded.cadence,
-         speaker = excluded.speaker,
-         trained_at = excluded.trained_at,
-         updated_at = datetime('now')`,
-    )
-    .run(
+export async function saveBrandVoiceForUser(userId: string, voice: BrandVoice) {
+  await execute(
+    `INSERT INTO brand_voices (user_id, sample, trained, traits_json, cadence, speaker, trained_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       sample = VALUES(sample),
+       trained = VALUES(trained),
+       traits_json = VALUES(traits_json),
+       cadence = VALUES(cadence),
+       speaker = VALUES(speaker),
+       trained_at = VALUES(trained_at)`,
+    [
       userId,
       voice.sample,
       voice.trained ? 1 : 0,
@@ -377,47 +405,52 @@ export function saveBrandVoiceForUser(userId: string, voice: BrandVoice) {
       voice.cadence ?? "",
       voice.speaker ?? "aria",
       voice.trainedAt ?? null,
-    );
+    ],
+  );
 }
 
-export function listImages(userId: string): LabImage[] {
-  return getDb()
-    .prepare(
-      `SELECT id, prompt, url, created_at AS createdAt FROM images WHERE user_id = ? ORDER BY created_at DESC LIMIT 24`,
-    )
-    .all(userId) as LabImage[];
+export async function listImages(userId: string): Promise<LabImage[]> {
+  const rows = await queryRows<
+    RowDataPacket & { id: string; prompt: string; url: string; createdAt: string }
+  >(
+    `SELECT id, prompt, url, created_at AS createdAt FROM images WHERE user_id = ? ORDER BY created_at DESC LIMIT 24`,
+    [userId],
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    prompt: row.prompt,
+    url: row.url,
+    createdAt: row.createdAt,
+  }));
 }
 
-export function saveImagesForUser(userId: string, images: LabImage[]) {
-  const db = getDb();
-  const tx = db.transaction(() => {
-    db.prepare("DELETE FROM images WHERE user_id = ?").run(userId);
-    const insert = db.prepare(
-      `INSERT INTO images (id, user_id, prompt, url, created_at) VALUES (?, ?, ?, ?, ?)`,
-    );
+export async function saveImagesForUser(userId: string, images: LabImage[]) {
+  await withTransaction(async (conn: PoolConnection) => {
+    await conn.execute("DELETE FROM images WHERE user_id = ?", [userId]);
     for (const image of images.slice(0, 24)) {
-      insert.run(image.id, userId, image.prompt, image.url, image.createdAt);
+      await conn.execute(
+        `INSERT INTO images (id, user_id, prompt, url, created_at) VALUES (?, ?, ?, ?, ?)`,
+        [image.id, userId, image.prompt, image.url, image.createdAt],
+      );
     }
   });
-  tx();
 }
 
-export function getDraftForUser(userId: string): LabDraft | null {
-  const row = getDb()
-    .prepare(
-      `SELECT title, template, sections_json, collection_id, document_id, voice_applied
-       FROM drafts WHERE user_id = ?`,
-    )
-    .get(userId) as
-    | {
-        title: string;
-        template: string | null;
-        sections_json: string;
-        collection_id: string | null;
-        document_id: string | null;
-        voice_applied: number;
-      }
-    | undefined;
+export async function getDraftForUser(userId: string): Promise<LabDraft | null> {
+  const row = await queryOne<
+    RowDataPacket & {
+      title: string;
+      template: string | null;
+      sections_json: string;
+      collection_id: string | null;
+      document_id: string | null;
+      voice_applied: number;
+    }
+  >(
+    `SELECT title, template, sections_json, collection_id, document_id, voice_applied
+     FROM drafts WHERE user_id = ?`,
+    [userId],
+  );
   if (!row) return null;
   return {
     title: row.title,
@@ -429,21 +462,18 @@ export function getDraftForUser(userId: string): LabDraft | null {
   };
 }
 
-export function saveDraftForUser(userId: string, draft: LabDraft) {
-  getDb()
-    .prepare(
-      `INSERT INTO drafts (user_id, title, template, sections_json, collection_id, document_id, voice_applied, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(user_id) DO UPDATE SET
-         title = excluded.title,
-         template = excluded.template,
-         sections_json = excluded.sections_json,
-         collection_id = excluded.collection_id,
-         document_id = excluded.document_id,
-         voice_applied = excluded.voice_applied,
-         updated_at = datetime('now')`,
-    )
-    .run(
+export async function saveDraftForUser(userId: string, draft: LabDraft) {
+  await execute(
+    `INSERT INTO drafts (user_id, title, template, sections_json, collection_id, document_id, voice_applied)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       title = VALUES(title),
+       template = VALUES(template),
+       sections_json = VALUES(sections_json),
+       collection_id = VALUES(collection_id),
+       document_id = VALUES(document_id),
+       voice_applied = VALUES(voice_applied)`,
+    [
       userId,
       draft.title,
       draft.template ?? null,
@@ -451,9 +481,10 @@ export function saveDraftForUser(userId: string, draft: LabDraft) {
       draft.collectionId ?? null,
       draft.documentId ?? null,
       draft.voiceApplied ? 1 : 0,
-    );
+    ],
+  );
 }
 
-export function clearDraftForUser(userId: string) {
-  getDb().prepare("DELETE FROM drafts WHERE user_id = ?").run(userId);
+export async function clearDraftForUser(userId: string) {
+  await execute("DELETE FROM drafts WHERE user_id = ?", [userId]);
 }

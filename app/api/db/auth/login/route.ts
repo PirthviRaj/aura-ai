@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const result = authenticateUser(String(body.email ?? ""), String(body.password ?? ""));
+    const result = await authenticateUser(String(body.email ?? ""), String(body.password ?? ""));
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 401 });
     }

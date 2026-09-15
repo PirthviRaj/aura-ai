@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura AI — Portfolio Thumbnail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000;
+      --panel: #060606;
+      --card: #0d0d0d;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #fff;
+      --muted: #8a8580;
+      --accent: #ff4d00;
+      --accent-2: #ff7a33;
+      --accent-soft: rgba(255, 77, 0, 0.14);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 2000px;
+      height: 1500px;
+      overflow: hidden;
+    }
+    body {
+      font-family: "Manrope", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .canvas {
+      width: 2000px;
+      height: 1500px;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      background:
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255, 77, 0, 0.08), transparent 55%),
+        linear-gradient(180deg, #080808 0%, #030303 100%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Nav */
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .logo {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+    .links {
+      display: flex;
+      gap: 18px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #ccc;
+    }
+    .btn-sm {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 28px 28px 22px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .hero h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .hero p {
+      margin: 14px auto 0;
+      max-width: 560px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .hero-cta {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .btn {
+      padding: 11px 18px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .btn.primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(255, 77, 0, 0.35);
+    }
+    .btn.ghost {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      background: transparent;
+    }
+    .proof {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .avatars {
+      display: flex;
+    }
+    .avatars i {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #111;
+      margin-left: -6px;
+      background: linear-gradient(145deg, #444, #222);
+    }
+    .avatars i:first-child { margin-left: 0; background: linear-gradient(145deg, #ff8a4c, #ff4d00); }
+
+    /* Section titles */
+    .section {
+      padding: 0 22px 18px;
+    }
+    .section h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .section h2 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .section > p {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 520px;
+      margin: 0 auto 14px;
+      font-weight: 500;
+    }
+
+    /* Dashboard showcase card */
+    .showcase {
+      flex: 1;
+      padding: 0 22px 22px;
+      min-height: 0;
+    }
+    .dash-card {
+      height: 100%;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #0a0a0a;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+    .dash-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #0e0e0e;
+    }
+    .dash-top span {
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .dash-top .dots {
+      display: flex;
+      gap: 5px;
+    }
+    .dash-top .dots i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+    }
+    .dash-body {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      height: calc(100% - 44px);
+    }
+    .mini-nav {
+      background: #080808;
+      border-right: 1px solid var(--line);
+      padding: 10px 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      height: 100%;
+    }
+    .mini-nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+    }
+    .mini-nav-upgrade {
+      margin-top: auto;
+      padding: 10px 8px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255, 77, 0, 0.22), rgba(255, 77, 0, 0.08));
+      border: 1px solid rgba(255, 122, 51, 0.3);
+      margin-bottom: 8px;
+    }
+    .mini-nav-upgrade strong {
+      display: block;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent-2);
+      margin-bottom: 3px;
+    }
+    .mini-nav-upgrade span {
+      display: block;
+      font-size: 7px;
+      color: var(--muted);
+      line-height: 1.35;
+      font-weight: 600;
+    }
+    .mini-nav-upgrade em {
+      display: block;
+      margin-top: 6px;
+      padding: 5px 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-style: normal;
+      font-size: 7px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .mini-nav b {
+      font-size: 11px;
+      margin-bottom: 8px;
+      padding: 0 6px;
+      color: #fff;
+    }
+    .mini-nav a {
+      display: block;
+      padding: 6px 8px;
+      border-radius: 7px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #888;
+      text-decoration: none;
+    }
+    .mini-nav a.on {
+      background: var(--accent-soft);
+      color: var(--accent-2);
+    }
+    .mini-main {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      height: 100%;
+      min-height: 0;
+    }
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .mini-stat {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px;
+    }
+    .mini-stat strong {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 14px;
+      color: var(--accent);
+    }
+    .mini-stat span {
+      font-size: 7px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .mini-table {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .mini-dash-foot {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    .mini-seo {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .mini-seo-ring {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent) 0 87%, rgba(255,255,255,0.08) 87% 100%);
+      display: grid;
+      place-items: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      position: relative;
+    }
+    .mini-seo-ring::before {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: 50%;
+      background: #0a0a0a;
+    }
+    .mini-seo-ring::after {
+      content: "87";
+      position: relative;
+      z-index: 1;
+    }
+    .mini-seo label {
+      font-size: 8px;
+      font-weight: 800;
+      color: #ccc;
+      text-align: center;
+    }
+    .mini-seo span {
+      font-size: 7px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.3;
+      font-weight: 600;
+    }
+    .mini-summary {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .mini-sum {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .mini-sum b {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 16px;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+    .mini-sum span {
+      font-size: 7px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .mini-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8px;
+    }
+    .mini-table th {
+      text-align: left;
+      padding: 7px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      color: #777;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .mini-table td {
+      padding: 7px 8px;
+      border-top: 1px solid var(--line);
+      color: #ccc;
+      font-weight: 600;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 7px;
+      font-weight: 800;
+      background: rgba(52, 211, 153, 0.14);
+      color: #34d399;
+    }
+    .tag.orange { background: var(--accent-soft); color: var(--accent-2); }
+
+    /* Right panel sections */
+    .skills {
+      padding: 24px 22px 18px;
+      text-align: center;
+    }
+    .skills h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .skills > p {
+      font-size: 11px;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 14px;
+      line-height: 1.5;
+    }
+    .skill-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .skill-grid span {
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 10px;
+      font-weight: 700;
+      color: #ccc;
+    }
+
+    .testimonials {
+      padding: 18px 22px;
+      border-top: 1px solid var(--line);
+    }
+    .testimonials h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .testimonials h2 em { font-style: normal; color: var(--accent); }
+    .t-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .t-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .stars { color: #fbbf24; font-size: 11px; letter-spacing: 1px; }
+    .t-card p {
+      font-size: 9px;
+      line-height: 1.5;
+      color: #aaa;
+      font-weight: 500;
+      flex: 1;
+    }
+    .t-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .t-user i {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #444, #222);
+      flex-shrink: 0;
+    }
+    .t-user strong {
+      display: block;
+      font-size: 10px;
+      color: #fff;
+    }
+    .t-user span {
+      font-size: 8px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .pricing {
+      padding: 18px 22px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .pricing h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .pricing h2 em { font-style: normal; color: var(--accent); }
+    .price-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+    .price-card {
+      border-radius: 16px;
+      padding: 16px 14px;
+      border: 1px solid var(--line);
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .price-card.featured {
+      background: linear-gradient(180deg, #ff7a33, #ff4d00);
+      border-color: transparent;
+      color: #fff;
+      transform: scale(1.03);
+      box-shadow: 0 16px 40px rgba(255, 77, 0, 0.35);
+    }
+    .price-card h3 {
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .price-card .amt {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .price-card .amt small {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+    .price-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+    }
+    .price-card li {
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.35;
+      opacity: 0.9;
+    }
+    .price-card li::before {
+      content: "✓ ";
+      font-weight: 800;
+    }
+    .price-card .pbtn {
+      margin-top: auto;
+      text-align: center;
+      padding: 9px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+    .price-card:not(.featured) .pbtn {
+      background: #fff;
+      color: #111;
+    }
+    .price-card.featured .pbtn {
+      background: #111;
+      color: #fff;
+    }
+
+    .faq {
+      padding: 16px 22px 14px;
+      border-top: 1px solid var(--line);
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .faq h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .faq h2 em { font-style: normal; color: var(--accent); }
+    .faq-item {
+      margin-top: 12px;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: var(--card);
+    }
+    .faq-item strong {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+    .faq-item span {
+      font-size: 9px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    /* Bottom fill sections */
+    .panel-bottom {
+      padding: 14px 22px 18px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+    .mini-phone {
+      background: linear-gradient(160deg, #2a2a2a, #111);
+      border-radius: 18px;
+      padding: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .mini-phone-inner {
+      background: #0a0a0a;
+      border-radius: 14px;
+      padding: 14px 10px;
+      height: 168px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .mini-phone-inner b {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 13px;
+      color: #fff;
+    }
+    .mini-phone-inner span {
+      font-size: 8px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .mini-phone-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .mini-phone-stats i {
+      display: block;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px;
+      font-style: normal;
+      font-size: 7px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .mini-phone-stats i strong {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 14px;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+    .bottom-info h3 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .bottom-info h3 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .bottom-info p {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .tech-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tech-row span {
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 9px;
+      font-weight: 700;
+      color: #bbb;
+    }
+    .workflow-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .wf-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: var(--card);
+      text-align: center;
+    }
+    .wf-step b {
+      display: block;
+      font-size: 16px;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .wf-step span {
+      font-size: 8px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .panel-cta {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255, 77, 0, 0.18), rgba(255, 77, 0, 0.06));
+      border: 1px solid rgba(255, 122, 51, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .panel-cta .copy strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+    .panel-cta .copy span {
+      font-size: 9px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .panel-cta .btn {
+      flex-shrink: 0;
+      padding: 10px 16px;
+      font-size: 10px;
+    }
+    .right-scroll {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .right-bottom {
+      margin-top: auto;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <!-- Left panel: Hero + Dashboard -->
+    <div class="panel">
+      <div class="topnav">
+        <div class="logo">Aura AI</div>
+        <div class="links">
+          <span>Modules</span>
+          <span>Workflow</span>
+          <span>Testimonials</span>
+          <span>Pricing</span>
+          <span>FAQ</span>
+        </div>
+        <div class="btn-sm">Get started →</div>
+      </div>
+
+      <div class="hero">
+        <h1>Unleash Your <em>SEO Potential</em> With One Content OS</h1>
+        <p>Research, write, score, and ship rank-ready content — AI Writer, Research Chat, Brand Voice, and Image Studio in one authenticated pipeline.</p>
+        <div class="hero-cta">
+          <div class="btn primary">Get started →</div>
+          <div class="btn ghost">See dashboard</div>
+        </div>
+        <div class="proof">
+          <div class="avatars"><i></i><i></i><i></i><i></i></div>
+          <span>10 live modules · MySQL auth · SEO scoring built-in</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Live <em>Pipeline</em></h2>
+        <p>Collections, SEO scoring, and publish-ready workflows — not mockups.</p>
+      </div>
+
+      <div class="showcase">
+        <div class="dash-card">
+          <div class="dash-top">
+            <span>Aura · Collections</span>
+            <div class="dots"><i></i><i></i><i></i></div>
+          </div>
+          <div class="dash-body">
+            <div class="mini-nav">
+              <b>Aura</b>
+              <div class="mini-nav-links">
+                <a href="#">Dashboard</a>
+                <a class="on" href="#">Collections</a>
+                <a href="#">Writer</a>
+                <a href="#">Templates</a>
+                <a href="#">Chat</a>
+                <a href="#">Brand Voice</a>
+                <a href="#">Images</a>
+                <a href="#">Workflows</a>
+              </div>
+              <div class="mini-nav-upgrade">
+                <strong>Upgrade to Pro</strong>
+                <span>Brand voice, Image Studio &amp; unlimited Chat.</span>
+                <em>Upgrade now</em>
+              </div>
+              <a href="#">Billing</a>
+            </div>
+            <div class="mini-main">
+              <div class="mini-stats">
+                <div class="mini-stat"><strong>87</strong><span>SEO score</span></div>
+                <div class="mini-stat"><strong>12</strong><span>Assets</span></div>
+                <div class="mini-stat"><strong>06</strong><span>Review</span></div>
+                <div class="mini-stat"><strong>24</strong><span>Images</span></div>
+              </div>
+              <div class="mini-table">
+                <table>
+                  <thead>
+                    <tr><th>Asset</th><th>Module</th><th>SEO</th><th>Status</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>CRM onboarding guide</td><td>Writer</td><td>87</td><td><span class="tag">Ready</span></td></tr>
+                    <tr><td>Search intent map</td><td>Chat</td><td>82</td><td><span class="tag orange">Scored</span></td></tr>
+                    <tr><td>Brand voice polish</td><td>Voice</td><td>79</td><td><span class="tag orange">Review</span></td></tr>
+                    <tr><td>Launch hero set</td><td>Images</td><td>—</td><td><span class="tag orange">Queued</span></td></tr>
+                    <tr><td>Q3 product cluster</td><td>Collections</td><td>85</td><td><span class="tag">Ready</span></td></tr>
+                    <tr><td>SEO blog template pack</td><td>Templates</td><td>88</td><td><span class="tag">Ready</span></td></tr>
+                    <tr><td>Product launch cluster</td><td>Workflows</td><td>84</td><td><span class="tag orange">Review</span></td></tr>
+                    <tr><td>Meta description batch</td><td>Editor</td><td>81</td><td><span class="tag">Ready</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mini-dash-foot">
+                <div class="mini-seo">
+                  <div class="mini-seo-ring" aria-hidden="true"></div>
+                  <label>SEO readiness</label>
+                  <span>Headings, intent &amp; voice applied</span>
+                </div>
+                <div class="mini-summary">
+                  <div class="mini-sum"><b>12</b><span>Total assets</span></div>
+                  <div class="mini-sum"><b>87</b><span>Avg SEO score</span></div>
+                  <div class="mini-sum"><b>06</b><span>In review</span></div>
+                  <div class="mini-sum"><b>10</b><span>Live modules</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-bottom">
+        <div class="bottom-grid">
+          <div class="mini-phone">
+            <div class="mini-phone-inner">
+              <b>Dashboard</b>
+              <span>Mobile · score &amp; ship</span>
+              <div class="mini-phone-stats">
+                <i>SEO<strong>87</strong></i>
+                <i>Review<strong>06</strong></i>
+                <i>Assets<strong>12</strong></i>
+                <i>Images<strong>24</strong></i>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-info">
+            <h3>Mobile-<em>ready</em> pipeline</h3>
+            <p>Score drafts, review collections, and launch Writer or Chat from any device — same authenticated SEO OS.</p>
+            <div class="tech-row">
+              <span>Next.js 14</span><span>MySQL</span><span>Vercel</span><span>Tailwind</span><span>TypeScript</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel: Skills + Testimonials + Pricing + FAQ -->
+    <div class="panel">
+      <div class="right-scroll">
+        <div class="skills">
+          <h2>Live Modules</h2>
+          <p>Everything you need to research, draft, score, and publish SEO content from one workspace.</p>
+          <div class="skill-grid">
+            <span>AI Writer</span><span>Research Chat</span><span>Templates</span>
+            <span>Editor</span><span>Brand Voice</span><span>Image Studio</span>
+            <span>Workflows</span><span>Collections</span><span>SEO Scoring</span>
+            <span>Intent Search</span><span>MySQL Auth</span><span>Dashboard</span>
+          </div>
+        </div>
+
+        <div class="testimonials">
+          <h2>Client <em>Testimonials</em></h2>
+          <div class="t-grid">
+            <div class="t-card">
+              <div class="stars">★★★★★</div>
+              <p>"Aura AI replaced our scattered docs and chat tabs. One pipeline from brief to rank-ready draft."</p>
+              <div class="t-user"><i></i><div><strong>James Carter</strong><span>Content Lead</span></div></div>
+            </div>
+            <div class="t-card">
+              <div class="stars">★★★★★</div>
+              <p>"SEO scoring before publish is a game changer. Collections keep our campaign assets organized."</p>
+              <div class="t-user"><i></i><div><strong>Sarah Mitchell</strong><span>SEO Manager</span></div></div>
+            </div>
+            <div class="t-card">
+              <div class="stars">★★★★★</div>
+              <p>"Brand Voice + Writer in one OS. Desktop dashboard and mobile-ready workflow — shipped fast."</p>
+              <div class="t-user"><i></i><div><strong>David Chen</strong><span>Founder</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pricing">
+          <h2>Our <em>Pricing</em></h2>
+          <div class="price-grid">
+            <div class="price-card">
+              <h3>Starter</h3>
+              <div class="amt">$29<small>/mo</small></div>
+              <ul>
+                <li>AI Writer + Templates</li>
+                <li>Basic SEO scoring</li>
+                <li>5 collections</li>
+                <li>Email auth</li>
+              </ul>
+              <div class="pbtn">Get started →</div>
+            </div>
+            <div class="price-card featured">
+              <h3>Professional</h3>
+              <div class="amt">$79<small>/mo</small></div>
+              <ul>
+                <li>All 10 live modules</li>
+                <li>Research Chat + Brand Voice</li>
+                <li>Image Studio + Workflows</li>
+                <li>MySQL + unlimited collections</li>
+              </ul>
+              <div class="pbtn">Get started →</div>
+            </div>
+            <div class="price-card">
+              <h3>Business</h3>
+              <div class="amt">$149<small>/mo</small></div>
+              <ul>
+                <li>Team workspace</li>
+                <li>Priority SEO scoring</li>
+                <li>Custom workflows</li>
+                <li>API + white-label</li>
+              </ul>
+              <div class="pbtn">Get started →</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-bottom">
+          <div class="panel-bottom">
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;text-align:center;margin-bottom:10px;">
+              Content <em style="font-style:normal;color:var(--accent)">Workflow</em>
+            </h2>
+            <div class="workflow-strip">
+              <div class="wf-step"><b>01</b><span>Research</span></div>
+              <div class="wf-step"><b>02</b><span>Write</span></div>
+              <div class="wf-step"><b>03</b><span>Score</span></div>
+              <div class="wf-step"><b>04</b><span>Publish</span></div>
+            </div>
+          </div>
+
+          <div class="faq">
+            <h2>Frequently <em>Asked Questions</em></h2>
+            <div class="faq-list">
+              <div class="faq-item">
+                <strong>Is this a real product or a mockup?</strong>
+                <span>Authenticated SEO content OS with MySQL, live modules, and real dashboard UI — deployed on Vercel.</span>
+              </div>
+              <div class="faq-item">
+                <strong>What modules are included?</strong>
+                <span>Writer, Templates, Editor, Research Chat, Brand Voice, Image Studio, Workflows, Collections, SEO Scoring, and Auth.</span>
+              </div>
+              <div class="faq-item">
+                <strong>Can I self-host the stack?</strong>
+                <span>Yes — Next.js app with MySQL schema, init scripts, and environment config included in the repo.</span>
+              </div>
+            </div>
+            <div class="panel-cta">
+              <div class="copy">
+                <strong>Ready to rank?</strong>
+                <span>aura-ai-orcin-xi.vercel.app · Live demo</span>
+              </div>
+              <div class="btn primary">View project →</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

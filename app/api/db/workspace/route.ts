@@ -15,39 +15,39 @@ import {
 
 export const runtime = "nodejs";
 
-function requireUser() {
-  const current = getSessionByToken(getSessionToken());
+async function requireUser() {
+  const current = await getSessionByToken(getSessionToken());
   if (!current) return null;
   return current.user;
 }
 
 export async function GET(request: Request) {
   try {
-    const user = requireUser();
+    const user = await requireUser();
     if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const resource = searchParams.get("resource") || "all";
 
     if (resource === "collections") {
-      return NextResponse.json({ ok: true, collections: listCollections(user.id) });
+      return NextResponse.json({ ok: true, collections: await listCollections(user.id) });
     }
     if (resource === "images") {
-      return NextResponse.json({ ok: true, images: listImages(user.id) });
+      return NextResponse.json({ ok: true, images: await listImages(user.id) });
     }
     if (resource === "voice") {
-      return NextResponse.json({ ok: true, voice: getBrandVoiceForUser(user.id) });
+      return NextResponse.json({ ok: true, voice: await getBrandVoiceForUser(user.id) });
     }
     if (resource === "draft") {
-      return NextResponse.json({ ok: true, draft: getDraftForUser(user.id) });
+      return NextResponse.json({ ok: true, draft: await getDraftForUser(user.id) });
     }
 
     return NextResponse.json({
       ok: true,
-      collections: listCollections(user.id),
-      images: listImages(user.id),
-      voice: getBrandVoiceForUser(user.id),
-      draft: getDraftForUser(user.id),
+      collections: await listCollections(user.id),
+      images: await listImages(user.id),
+      voice: await getBrandVoiceForUser(user.id),
+      draft: await getDraftForUser(user.id),
     });
   } catch (error) {
     return NextResponse.json(
@@ -59,27 +59,27 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const user = requireUser();
+    const user = await requireUser();
     if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
     const resource = String(body.resource || "");
 
     if (resource === "collections") {
-      saveCollectionsForUser(user.id, body.collections ?? []);
+      await saveCollectionsForUser(user.id, body.collections ?? []);
       return NextResponse.json({ ok: true });
     }
     if (resource === "images") {
-      saveImagesForUser(user.id, body.images ?? []);
+      await saveImagesForUser(user.id, body.images ?? []);
       return NextResponse.json({ ok: true });
     }
     if (resource === "voice") {
-      saveBrandVoiceForUser(user.id, body.voice);
+      await saveBrandVoiceForUser(user.id, body.voice);
       return NextResponse.json({ ok: true });
     }
     if (resource === "draft") {
-      if (body.draft == null) clearDraftForUser(user.id);
-      else saveDraftForUser(user.id, body.draft);
+      if (body.draft == null) await clearDraftForUser(user.id);
+      else await saveDraftForUser(user.id, body.draft);
       return NextResponse.json({ ok: true });
     }
 
