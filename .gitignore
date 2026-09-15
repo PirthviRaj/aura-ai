@@ -40,10 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
-.env*
-
 # sqlite database
 /data/*.sqlite
 /data/*.sqlite-*
-
